@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -6,9 +7,11 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
     public abstract class DaxFile : GoldBoxFile
     {
         List<DaxFileBlock> _blocks;
+        MemoryStream _memFile;
 
         protected DaxFile(string path, bool autoLoad = true)
         {
+            _memFile = new MemoryStream();
             if (autoLoad)
                 load(path);
         }
@@ -45,7 +48,18 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
         {
             FileName = file;
 
-            using (var stream = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            // Save the file in memory to easily modify it later
+            FileStream fs = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (fs.Length > Int32.MaxValue)
+            {
+                throw new ArgumentException("File is too large.  Must be less than " + System.Int32.MaxValue + " bytes.");
+            }
+            byte[] fileData = new byte[fs.Length];
+            fs.Read(fileData, 0, fileData.Length);
+            fs.Close();
+            _memFile = new MemoryStream(fileData);
+
+            using (var stream = _memFile)
             {
                 var reader = new BinaryReader(stream);
                 var dataOffset = reader.ReadInt16() + 2;
@@ -124,6 +138,11 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
                     }
                 } while (inputIndex < dataLength);
 
+        }
+
+        public void save()
+        {
+            System.Windows.Forms.MessageBox.Show("Saving");   
         }
     }
 }

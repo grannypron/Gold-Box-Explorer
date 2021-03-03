@@ -13,8 +13,10 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
         private readonly bool _display35ImagesPerRow;
         private readonly bool _displayBorder;
         private readonly PictureBox _pictureBox;
+        private readonly Dictionary<RectangleF, int> _rectanglesToIndex;
+        private readonly DaxImageFile _file;
 
-        public DaxImageViewer(IList<Bitmap> bitmaps, float zoom, int containerWidth, bool display35ImagesPerRow, bool displayBorder, IList<int> bitmapIds)
+        public DaxImageViewer(IList<Bitmap> bitmaps, float zoom, int containerWidth, bool display35ImagesPerRow, bool displayBorder, IList<int> bitmapIds, DaxImageFile file)
         {
             Zoom = zoom;
             ContainerWidth = containerWidth;
@@ -22,8 +24,11 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
             _bitmapIds = bitmapIds;
             _display35ImagesPerRow = display35ImagesPerRow;
             _displayBorder = displayBorder;
+            _rectanglesToIndex = new Dictionary<RectangleF, int>();
             _pictureBox = new PictureBox();
             _pictureBox.Paint += PictureBoxPaint;
+            _pictureBox.DoubleClick += PictureBoxDoubleClick;
+            _file = file;
         }
 
         public float Zoom { get; set; }
@@ -46,6 +51,8 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
             var font = new Font("Courier New", fontSize);
             var brush = new SolidBrush(Color.FromArgb(85, 85, 85));
             int padding = fontSize * 3;
+
+            _rectanglesToIndex.Clear();
 
             for (int i = 0; i < bitmapCount; i++)
             {
@@ -73,8 +80,9 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
                     y += lastImageHeight + ypad;
                     if (i < bitmapCount - 1) lastImageHeight = 0;
                 }
-
-                e.Graphics.DrawImage(currentImage, x, y, currentImage.Width*Zoom, currentImage.Height*Zoom);
+                RectangleF imageRect = new RectangleF(x, y, currentImage.Width * Zoom, currentImage.Height * Zoom);
+                _rectanglesToIndex.Add(imageRect, i);
+                e.Graphics.DrawImage(currentImage, imageRect);
                 e.Graphics.DrawString(currentId.ToString(), font, brush, x + (currentImage.Width*Zoom),y);
                 if (_displayBorder)
                 {
@@ -86,6 +94,51 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
 
             _pictureBox.Width = ContainerWidth;
             _pictureBox.Height = (int) (fontSize + y + (lastImageHeight*Zoom));
+        }
+
+        private void PictureBoxDoubleClick(object sender, EventArgs e)
+        {
+            int id = GetID(new Point(((MouseEventArgs)e).X, ((MouseEventArgs)e).Y));
+            if (id < 0)
+            {
+                return;
+            }
+
+            Bitmap origBitmap = _bitmaps[id];
+
+            System.Windows.Forms.OpenFileDialog fileDialog = new System.Windows.Forms.OpenFileDialog();
+            string dimensions = origBitmap.Width + " x " + origBitmap.Height;
+            fileDialog.Filter = "Bitmap images (*.bmp)|*.bmp";
+            fileDialog.Title = "Please choose a bitmap file with the following dimensions: " + dimensions;
+            DialogResult result = fileDialog.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                System.IO.Stream strm = fileDialog.OpenFile();
+                Bitmap b = new Bitmap(strm);
+                
+                if (b.Width != origBitmap.Width || b.Height != origBitmap.Height) { 
+                    string fileDims = b.Width + " x " + b.Height;
+                    throw new ArgumentException("Size of loaded image (" + fileDims + ") does not match original (" + dimensions + ")");
+                }
+
+                // Modify the block with the new images
+                _file.SetBitmap(b, id);
+                _pictureBox.Refresh();
+                _file.save();
+            }
+
+        }
+
+        private int GetID(Point point)
+        {
+            foreach (RectangleF r in _rectanglesToIndex.Keys)
+            {
+                if (r.Contains(point))
+                {
+                    return _rectanglesToIndex[r];
+                }
+            }
+            return -1;
         }
     }
 }

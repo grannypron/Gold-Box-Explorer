@@ -46,5 +46,9 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
             return _bitmapIds.AsReadOnly();
         }
 
+        public void SetBitmap(Bitmap b, int idx)
+        {
+            _bitmaps[idx] = b;
+        }
     }
 }
