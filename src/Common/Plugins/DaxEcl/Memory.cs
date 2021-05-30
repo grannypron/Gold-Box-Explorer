@@ -531,6 +531,19 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
             ecl_offset += (ushort)inputLength;
 
             stringTable[strIndex] = DecompressString(data);
+            //Console.WriteLine(this._blockId + "--" + stringTable[strIndex]);
+            string bytes = "";
+            foreach (byte b in data)
+            {
+                bytes += ((int)b).ToString("X").PadLeft(2, '0') + "/";
+            }
+            //Console.WriteLine(bytes);
+            bytes = "";
+            foreach (byte b in CompressString(stringTable[strIndex]))
+            {
+                bytes += ((int)b).ToString("X").PadLeft(2, '0') + "/";
+            }
+            //Console.WriteLine(bytes);
         }
 
         internal string DecompressString(byte[] data)
@@ -571,6 +584,59 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
             return sb.ToString();
         }
 
+
+        internal static byte[] CompressString(string input)
+        {
+            byte[] data = new byte[((input.Length * 3) / 4) + 1];
+            int state = 1;
+            int last = 0;
+            int curr = 0;
+
+            foreach (char ch in input)
+            {
+                uint bits = deflateChar(ch) & 0x3F;
+                if (state == 1)
+                {
+                    data[curr] = (byte)(bits << 2);
+                    last = curr++;
+                    state = 2;
+                }
+                else if (state == 2)
+                {
+                    data[last] |= (byte)(bits >> 4);
+                    data[curr] = (byte)(bits << 4);
+                    last = curr++;
+                    state = 3;
+                }
+                else if (state == 3)
+                {
+                    data[last] |= (byte)(bits >> 2);
+                    data[curr] = (byte)(bits << 6);
+                    last = curr++;
+                    state = 4;
+                }
+                else //if (state == 4)
+                {
+                    data[last] |= (byte)(bits);
+                    state = 1;
+                }
+
+            }
+
+            return data;
+        }
+
+
+        internal static uint deflateChar(char ch)
+        {
+            uint output = (uint)ch;
+
+            if (output >= 0x40)
+            {
+                output -= 0x40;
+            }
+            return output;
+        }
 
         internal char inflateChar(uint arg_0)
         {

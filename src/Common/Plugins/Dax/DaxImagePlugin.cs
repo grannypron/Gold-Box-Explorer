@@ -24,7 +24,7 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
             var displayBorder = filename != null && filename.ToUpper().StartsWith("SPRIT");
 
             _file = new DaxImageFile(args.Filename);
-            Viewer = new DaxImageViewer(_file.GetBitmaps(), args.Zoom, args.ContainerWidth, display35ImagesPerRow, displayBorder, _file.GetBitmapIds());
+            Viewer = new DaxImageViewer(_file.GetBitmaps(), args.Zoom, args.ContainerWidth, display35ImagesPerRow, displayBorder, _file.GetBitmapIds(), _file);
             return this;
         }
 

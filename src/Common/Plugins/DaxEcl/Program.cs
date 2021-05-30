@@ -19,6 +19,8 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
         public String _blockName;
         public int _blockId;
         private String _filename;
+        public int currentAddr;
+
         public EclDump(byte[] data, int blockId, string filename)
         {
             _filename = filename;
@@ -27,15 +29,14 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
             _blockName = blockId.ToString();
             SetupCommandTable();
             DumpEcl(data, _blockName);
-            annnotateEventSubroutines();
+            annnotateEventSubroutines(data);
         }
 
-        private void annnotateEventSubroutines()
+        private void annnotateEventSubroutines(byte[] data)
         {
             if (eventCount == 0) return;
             for (int i = 0; i < eventCount; i++)
             {
-
                 AddAnnotation(_largestOnGotoOpps[i].Word, string.Format("event {0} begins ", i));
             }
         }
@@ -94,7 +95,7 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
 
         void TryDump(string file)
         {
-            Console.WriteLine(file);
+            //Console.WriteLine(file);
             foreach (var block in GetAllBlocks(file))
             {
                 byte[] data = block.data;
@@ -279,6 +280,7 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
                 {
                     bool lastSkip = skipNext;
 
+                    currentAddr = addr;
                     txt += string.Format("{0} {1}", cmd.Name(), cmd.Dump());
 
                     if (lastSkip)

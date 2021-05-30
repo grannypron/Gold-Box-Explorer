@@ -27,7 +27,7 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
 
             if (skipNext == false) stopVM = true;
             AddAddr(newOffset, "Goto");
-
+            logPointerCommand(opps[0].Word, 4);
             return string.Format("0x{0:X4}", newOffset);
         }
 
@@ -40,7 +40,7 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
 
             //gbl.vmCallStack.Push(gbl.ecl_offset);
             //gbl.ecl_offset = newOffset;
-
+            logPointerCommand(opps[0].Word, 4);
             return string.Format("0x{0:X4}", newOffset);
         }
 
@@ -606,17 +606,28 @@ namespace GoldBoxExplorer.Lib.Plugins.DaxEcl.EclDump
                    
                 }
 
-            for (int i = 0; i < var_2; i++)
+            for (int idx = 0; idx < var_2; idx++)
             {
                 if (addComma) sb.Append(", ");
-                sb.Append(string.Format("0x{0:X4}", opps[i].Word));
+                sb.Append(string.Format("0x{0:X4}", opps[idx].Word));
                 addComma = true;
-                AddAddr(opps[i].Word, "OnGoto");
+                AddAddr(opps[idx].Word, "OnGoto");
+                logPointerCommand(opps[idx].Word, 6 + ((idx + 1) * 3));
             }
 
             return string.Format("{0} of [{1}]", var_1, sb.ToString());
         }
-
+        static int i = 0;
+        internal void logPointerCommand(ushort wordPtr, int destinationOffsetCount)   // destinationOffsetCount is the count from the GOTO address instruction start to the start of the destination address
+        {
+            // 25 00 is the GOTO - Then there are 4 bytes that idk about, then the length in hex
+            Console.Write(string.Format("@@{0}", i++) + "|" + this._blockName + "|" + (((currentAddr + MemBase) & 0xFFFF) + destinationOffsetCount) + "|" + (((wordPtr + MemBase) & 0xFFFF) + 2) + "|" + wordPtr + "|");
+            for (int idx = 0; idx < 10; idx++)
+            {
+                Console.Write("{0:X2} ", ecl_ptr[(((wordPtr + MemBase) & 0xFFFF) + 2 + idx)]);
+            }
+            Console.WriteLine();
+        }
         internal string CMD_Combat()
         {
             ecl_offset++;

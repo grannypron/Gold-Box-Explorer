@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -6,9 +7,11 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
     public abstract class DaxFile : GoldBoxFile
     {
         List<DaxFileBlock> _blocks;
+        MemoryStream _memFile;
 
         protected DaxFile(string path, bool autoLoad = true)
         {
+            _memFile = new MemoryStream();
             if (autoLoad)
                 load(path);
         }
@@ -45,7 +48,7 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
         {
             FileName = file;
 
-            using (var stream = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = new System.IO.FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 var reader = new BinaryReader(stream);
                 var dataOffset = reader.ReadInt16() + 2;
@@ -124,6 +127,31 @@ namespace GoldBoxExplorer.Lib.Plugins.Dax
                     }
                 } while (inputIndex < dataLength);
 
+        }
+
+        public void save()
+        {
+/*            MemoryStream mem = new MemoryStream();
+            using (FileStream fs = new FileStream(FileName, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                int data_offset = 0;
+                byte[] data = new byte[] { 36, 00 };
+                fs.Write(data, offset, data.Length);
+                offset += data.Length;
+
+
+                - for each data block in a DAX file:
+                  -loop until whole block is encoded
+                    - get count of sequential identical bytes(I've set the max count to 127)
+                    - get count of sequential bytes where the next byte differs from the previous one(I've set the max count to 126)
+                    - depending on which count is higher, store the control byte + byte to be copied / array of bytes depending on the case
+
+                    -increase offset by count
+                  - update the header for this data block with raw size, stored size and data start offset
+                        
+                fs.Write(data, 0, data.Length);
+            }
+            System.Windows.Forms.MessageBox.Show("Save complete.");   */
         }
     }
 }
